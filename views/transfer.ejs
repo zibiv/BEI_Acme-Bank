@@ -42,6 +42,7 @@
         <div class="mb-3 w-25">
           <label class="form-label">Amount To Send</label>
           <input class="form-control" name="amount" value="" />
+          <input class="form-control" name="_csrftoken" type="hidden" value=<%=token%> />
         </div>
 
         <button name="submit" type="submit" class="btn btn-primary">

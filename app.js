@@ -5,6 +5,8 @@ const path = require("path");
 const fs = require("fs");
 const helmet = require('helmet');
 const { body, query, validationResult, oneOf } = require('express-validator');
+const csrfToken = require('csrf');
+const tokens = new csrfToken();
 
 const db = new sqlite3.Database("./bank_sample.db");
 
@@ -78,8 +80,11 @@ app.get("/home", function (request, response) {
 //CSRF CODE SECURED. SEE HEADERS SET ABOVE
 app.get("/transfer", function (request, response) {
   if (request.session.loggedin) {
+    let secret = tokens.secretSync();
+    const token = tokens.create(secret);
+    request.session.csrfUSec = secret;
     var sent = "";
-    response.render("transfer", { sent });
+    response.render("transfer", { sent, token });
   } else {
     response.redirect("/");
   }
@@ -88,7 +93,11 @@ app.get("/transfer", function (request, response) {
 //CSRF CODE
 //http://localhost:3000/transfer?account_to=10001&amount=1000
 app.post("/transfer", function (request, response, next) {
-  if (request.session.loggedin) {
+  if (request.session.loggedin && request.session.csrfUSec && request.body._csrftoken) {
+    if (!tokens.verify(request.session.csrfUSec, request.body._csrftoken)) {
+      return response.redirect("/");
+    }
+    const token = tokens.create(request.session.csrfUSec);
     console.log("Transfer in progress");
     var balance = request.session.balance;
     var account_to = parseInt(request.body.account_to);
@@ -109,18 +118,18 @@ app.post("/transfer", function (request, response, next) {
               [amount, account_from],
               function (error, results) {
                 var sent = "Money Transfered";
-                response.render("transfer", { sent });
+                response.render("transfer", { sent, token });
               }
             );
           }
         );
       } else {
         var sent = "You Don't Have Enough Funds.";
-        response.render("transfer", { sent });
+        response.render("transfer", { sent, token });
       }
     } else {
       var sent = "";
-      response.render("transfer", { sent });
+      response.render("transfer", { sent, token });
     }
   } else {
     response.redirect("/");
