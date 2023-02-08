@@ -8,9 +8,21 @@
     "express-session": "^1.17.2",
     "express-validator": "^6.12.1",
     "helmet": "^4.6.0",
+    "nodemon": "^2.0.20",
     "sqlite3": "^5.0.2"
   },
   "devDependencies": {
     "eslint": "^7.32.0"
-  }
+  },
+  "name": "bei_28_acme-bank",
+  "description": "Welcome to Acme Bank! Acme Bank is a small credit union that provides assistance with deposits, loans, and a wide array of other financial services.",
+  "version": "1.0.0",
+  "main": ".eslintrc.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "nodemon app.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
 }

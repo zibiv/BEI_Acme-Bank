@@ -4,6 +4,7 @@ const session = require("express-session");
 const path = require("path");
 const fs = require("fs");
 const helmet = require('helmet');
+const { body } = require('express-validator');
 
 const db = new sqlite3.Database("./bank_sample.db");
 
@@ -35,7 +36,11 @@ app.post("/auth", function (request, response) {
   console.log(username);
   if (username && password) {
     db.get(
-      `SELECT * FROM users WHERE username = '${request.body.username}' AND password = '${request.body.password}'`,
+      `SELECT * FROM users WHERE username = $username AND password = $password`,
+      {
+        $username: request.body.username,
+        $password: request.body.password
+      },
       function (error, results) {
         console.log(error);
         console.log(results);
@@ -92,7 +97,7 @@ app.post("/transfer", function (request, response, next) {
     if (account_to && amount) {
       if (balance > amount) {
         db.get(
-          `UPDATE users SET balance = balance + ${amount} WHERE account_no = ${account_to}`,
+          `UPDATE users SET balance = balance + ? WHERE account_no = ?`, [amount, account_to],
           function (error, results) {
             if(error) {
               return next(err);
@@ -100,7 +105,8 @@ app.post("/transfer", function (request, response, next) {
             console.log(error);
             console.log(results);
             db.get(
-              `UPDATE users SET balance = balance - ${amount} WHERE account_no = ${account_from}`,
+              `UPDATE users SET balance = balance - ? WHERE account_no = ?`,
+              [amount, account_from],
               function (error, results) {
                 var sent = "Money Transfered";
                 response.render("transfer", { sent });
@@ -169,13 +175,14 @@ app.get("/public_forum", function (request, response) {
   //response.end();
 });
 
-app.post("/public_forum", function (request, response) {
+app.post("/public_forum", body('comment').trim().escape() ,function (request, response) {
   if (request.session.loggedin) {
     var comment = request.body.comment;
     var username = request.session.username;
     if (comment) {
       db.all(
-        `INSERT INTO public_forum (username,message) VALUES ('${username}','${comment}')`,
+        `INSERT INTO public_forum (username,message) VALUES (?, ?)`, 
+        [username ,comment],
         (err, rows) => {
           console.log(err);
         }
@@ -206,7 +213,7 @@ app.get("/public_ledger", function (request, response) {
     var id = request.query.id;
     if (id) {
       db.all(
-        `SELECT * FROM public_ledger WHERE from_account = '${id}'`,
+        `SELECT * FROM public_ledger WHERE from_account = ?`, [id],
         (err, rows) => {
           console.log("PROCESSING INPU");
           console.log(err);
