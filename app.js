@@ -4,7 +4,7 @@ const session = require("express-session");
 const path = require("path");
 const fs = require("fs");
 const helmet = require('helmet');
-const { body } = require('express-validator');
+const { body, query, validationResult, oneOf } = require('express-validator');
 
 const db = new sqlite3.Database("./bank_sample.db");
 
@@ -208,8 +208,12 @@ app.post("/public_forum", body('comment').trim().escape() ,function (request, re
 });
 
 //SQL UNION INJECTION
-app.get("/public_ledger", function (request, response) {
+app.get("/public_ledger", oneOf([query('id').isInt({min:0}).trim().escape(), query('id').isEmpty()]), function (request, response) {
+  const errors = validationResult(request);
   if (request.session.loggedin) {
+    if(!errors.isEmpty()) {
+      return response.redirect("/public_ledger");
+    }
     var id = request.query.id;
     if (id) {
       db.all(
