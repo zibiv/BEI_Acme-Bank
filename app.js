@@ -3,6 +3,7 @@ const express = require("express");
 const session = require("express-session");
 const path = require("path");
 const fs = require("fs");
+const helmet = require('helmet');
 
 const db = new sqlite3.Database("./bank_sample.db");
 
@@ -11,11 +12,12 @@ const PORT = 3000;
 app.set("view engine", "ejs");
 app.use(express.static(path.join(__dirname, "public")));
 
+app.use(helmet());
 app.use(
   session({
     secret: "secret",
     resave: true,
-    saveUninitialized: true,
+    saveUninitialized: false,
   })
 );
 
@@ -30,6 +32,7 @@ app.get("/", function (request, response) {
 app.post("/auth", function (request, response) {
   var username = request.body.username;
   var password = request.body.password;
+  console.log(username);
   if (username && password) {
     db.get(
       `SELECT * FROM users WHERE username = '${request.body.username}' AND password = '${request.body.password}'`,
@@ -78,7 +81,8 @@ app.get("/transfer", function (request, response) {
 });
 
 //CSRF CODE
-app.post("/transfer", function (request, response) {
+//http://localhost:3000/transfer?account_to=10001&amount=1000
+app.post("/transfer", function (request, response, next) {
   if (request.session.loggedin) {
     console.log("Transfer in progress");
     var balance = request.session.balance;
@@ -90,15 +94,18 @@ app.post("/transfer", function (request, response) {
         db.get(
           `UPDATE users SET balance = balance + ${amount} WHERE account_no = ${account_to}`,
           function (error, results) {
+            if(error) {
+              return next(err);
+            }
             console.log(error);
             console.log(results);
-          }
-        );
-        db.get(
-          `UPDATE users SET balance = balance - ${amount} WHERE account_no = ${account_from}`,
-          function (error, results) {
-            var sent = "Money Transfered";
-            response.render("transfer", { sent });
+            db.get(
+              `UPDATE users SET balance = balance - ${amount} WHERE account_no = ${account_from}`,
+              function (error, results) {
+                var sent = "Money Transfered";
+                response.render("transfer", { sent });
+              }
+            );
           }
         );
       } else {
