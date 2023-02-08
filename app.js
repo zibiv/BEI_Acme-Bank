@@ -92,12 +92,15 @@ app.get("/transfer", function (request, response) {
 
 //CSRF CODE
 //http://localhost:3000/transfer?account_to=10001&amount=1000
-app.post("/transfer", function (request, response, next) {
+app.post("/transfer", [body('amount').toInt().isInt({min: 0}).trim().escape(), body('account_to').toInt().isInt({min: 0}).trim().escape()], function (request, response, next) {
   if (request.session.loggedin && request.session.csrfUSec && request.body._csrftoken) {
-    if (!tokens.verify(request.session.csrfUSec, request.body._csrftoken)) {
-      return response.redirect("/");
-    }
+    if (!tokens.verify(request.session.csrfUSec, request.body._csrftoken)) return response.redirect("/");
     const token = tokens.create(request.session.csrfUSec);
+    const errorValidation = validationResult(request);
+    if(!errorValidation.isEmpty()) {
+      var sent = "Account id and amount must by numbers";
+      return response.render("transfer", { sent, token });
+    }
     console.log("Transfer in progress");
     var balance = request.session.balance;
     var account_to = parseInt(request.body.account_to);
