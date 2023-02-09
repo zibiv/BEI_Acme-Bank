@@ -146,6 +146,7 @@ app.post("/transfer", [body('amount').toInt().isInt({min: 0}).trim().escape(), b
 //PATH TRAVERSAL CODE
 app.get("/download", function (request, response) {
   if (request.session.loggedin) {
+    console.log(request.session.file_history);
     file_name = request.session.file_history;
     response.render("download", { file_name });
   } else {
@@ -162,9 +163,16 @@ app.post("/download", function (request, response) {
     response.setHeader("Content-Type", "text/html");
 
     // Change the filePath to current working directory using the "path" method
-    const filePath = "history_files/" + file_name;
-    console.log(filePath);
+    const rootDirectory = process.cwd();
+    const filePath = path.join(rootDirectory,"/history_files/",file_name);
+    const verify = filePath.includes("/history_files/" + request.session.file_history);
+    //пользователь может изменить у себя значение которые отправляется на сервер и получить данные из другого файла.
+    //что бы это предотвратить мы нормализируем путь и проверяем наличие в пути необходимой папки и называния файла который прендлежит пользователю
+    //понятно что пример в учебных целях, в реальности не надо передавать на фрон вообще возможность указывать явно файл.
     try {
+      if(!verify) {
+        throw new Error("No such a directory")
+      }
       content = fs.readFileSync(filePath, "utf8");
       response.end(content);
     } catch (err) {
