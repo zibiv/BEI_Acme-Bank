@@ -28,7 +28,11 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
 app.get("/", function (request, response) {
-  response.sendFile(path.join(__dirname + "/html/login.html"));
+  if(request.session.loggedin) {
+    response.redirect("/home");
+  } else {
+    response.sendFile(path.join(__dirname + "/html/login.html"));
+  }
 });
 
 //LOGIN SQL
@@ -255,6 +259,12 @@ app.get("/public_ledger", oneOf([query('id').isInt({min:0}).trim().escape(), que
   //response.end();
 });
 
-app.listen(PORT, () => {
+app.post('/logout', (request, response) => {
+  request.session.destroy(()=>{
+    response.redirect("/");
+  })
+})
+
+app.listen(PORT, (request, response) => {
   console.log(`Server is running on port: ${PORT}`);
 });
